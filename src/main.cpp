@@ -1,9 +1,7 @@
 #include <QtWidgets/QtWidgets>
 #include <QtWidgets>
-
 #include <QtCore>
-#include "mainwidget.h"
-#include <iostream>
+#include "VideoDisplay.hpp"
 
 
 
@@ -22,5 +20,6 @@ int main(int argc, char *argv[])
     QString file = QFileDialog::getOpenFileName();
     vid->set_video(file);
     vid->show();
+
     return a.exec();
 }
