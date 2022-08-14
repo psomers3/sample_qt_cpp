@@ -2,6 +2,7 @@
 #define MAINWIDGET_H
 #include <QtWidgets>
 #include <QtCore>
+#include "VideoDisplay.hpp"
 
 class MainWidget : public QWidget
 {
