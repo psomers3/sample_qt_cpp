@@ -16,10 +16,10 @@ int main(int argc, char *argv[])
         img->setPixmap(QPixmap::fromImage(image.scaled(800, 600, Qt::AspectRatioMode::KeepAspectRatio)));
         img->show();
     });
-    QObject::connect(vid, &VideoPlayer::media_state_changed, vid, &VideoPlayer::play);
     QString file = QFileDialog::getOpenFileName();
     vid->set_video(file);
     vid->show();
-
+    vid->play();
+    
     return a.exec();
 }
