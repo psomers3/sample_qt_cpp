@@ -1,15 +1,5 @@
-MACRO(HEADER_DIRECTORIES return_list)
-    FILE(GLOB_RECURSE new_list /opt/homebrew/include/Qt*.h)
-    SET(dir_list "")
-    FOREACH(file_path ${new_list})
-        GET_FILENAME_COMPONENT(dir_path ${file_path} PATH)
-        SET(dir_list ${dir_list} ${dir_path})
-    ENDFOREACH()
-    LIST(REMOVE_DUPLICATES dir_list)
-    SET(${return_list} ${dir_list})
-ENDMACRO()
-MACRO(LIB_DIRECTORIES qt_dir return_list)
-    FILE(GLOB_RECURSE new_list ${qt_dir}/*)
+MACRO(RECURSIVE_DIRECTORIES dir return_list)
+    FILE(GLOB_RECURSE new_list FOLLOW_SYMLINKS ${dir} )
     SET(dir_list "")
     FOREACH(file_path ${new_list})
         GET_FILENAME_COMPONENT(dir_path ${file_path} PATH)
@@ -27,11 +17,11 @@ project(play_video VERSION 1.0.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+# all includes are with the source files
+RECURSIVE_DIRECTORIES("${PROJECT_SOURCE_DIR}/src/*" project_includes)
+include_directories(PUBLIC ${project_includes})
 
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.11.0")
     file(GLOB pybind_source_files CONFIGURE_DEPENDS src/python_bindings/*pp)
@@ -41,15 +31,15 @@ else()
     file(GLOB SOURCE_FILES src/*pp)
 endif()
 
+# These are needed for dealing with Qt stuff
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
 find_package(Qt6 COMPONENTS Widgets MultimediaWidgets Multimedia REQUIRED)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} )
 add_library(${PROJECT_NAME}_lib ${SOURCE_FILES} )
 
-include_directories(PUBLIC "${PROJECT_SOURCE_DIR}/src")
-
-target_link_libraries(${PROJECT_NAME} Qt6::Widgets Qt6::Multimedia Qt6::MultimediaWidgets)
-# target_link_libraries(${PROJECT_NAME}_lib PUBLIC Qt6::Widgets Qt6::Multimedia Qt6::MultimediaWidgets)
 
 # -----------------------------------------------------------------------------------------------------------------
 # PYTHON STUFF
@@ -76,23 +66,21 @@ find_package(PyQt6)
 message(${_PyQt6_PATH})
 
 pybind11_add_module("${PROJECT_NAME}_py" ${pybind_source_files})
-HEADER_DIRECTORIES(header_dir_list)
-LIB_DIRECTORIES("${_PyQt6_PATH}/Qt6" pyqt6_libs)
+RECURSIVE_DIRECTORIES(/opt/homebrew/include/Qt*.h pyqt6_includes)
+FILE(GLOB_RECURSE pyqt6_libs FOLLOW_SYMLINKS "${_PyQt6_PATH}/Qt6/lib/*")
+list(FILTER pyqt6_libs INCLUDE REGEX "${_PyQt6_PATH}/Qt6/lib/.*A/.*" )
 
-# list(LENGTH header_dir_list header_dir_list_count)
-# message(STATUS "[INFO] Found ${header_dir_list_count} header directories.")
-# list(LENGTH pyqt6_libs header_dir_list_count)
-# message(STATUS "[INFO] Found ${header_dir_list_count} lib directories.")
+list(LENGTH pyqt6_includes header_dir_list_count)
+message(STATUS "[INFO] Found ${header_dir_list_count} header directories.")
+list(LENGTH pyqt6_libs header_dir_list_count)
+message(STATUS "[INFO] Found ${header_dir_list_count} lib directories.")
+message("${pyqt6_libs}")
 
+target_link_libraries("${PROJECT_NAME}" PUBLIC ${pyqt6_libs})
 
-target_link_directories(${PROJECT_NAME}_lib INTERFACE ${pyqt6_libs})
-target_include_directories("${PROJECT_NAME}_lib" PUBLIC ${header_dir_list} "/opt/homebrew/include")
+target_link_libraries("${PROJECT_NAME}_lib" PUBLIC ${pyqt6_libs})
+target_link_libraries("${PROJECT_NAME}_py" PUBLIC ${pyqt6_libs})
+
+target_include_directories("${PROJECT_NAME}" PUBLIC ${pyqt6_includes} "/opt/homebrew/include")
+target_include_directories("${PROJECT_NAME}_lib" PUBLIC ${pyqt6_includes} "/opt/homebrew/include")
 target_link_libraries("${PROJECT_NAME}_py" PUBLIC "${PROJECT_NAME}_lib")
-
-# add_custom_command(TARGET "${PROJECT_NAME}_py" POST_BUILD
-#         COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Core> $<TARGET_FILE_DIR:${PROJECT_NAME}_py>
-#         COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Gui> $<TARGET_FILE_DIR:${PROJECT_NAME}_py>
-#         COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Widgets> $<TARGET_FILE_DIR:${PROJECT_NAME}_py>
-#         COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::Multimedia> $<TARGET_FILE_DIR:${PROJECT_NAME}_py>
-#         COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::MultimediaWidgets> $<TARGET_FILE_DIR:${PROJECT_NAME}_py>
-#         )
