@@ -1,13 +1,3 @@
-MACRO(RECURSIVE_DIRECTORIES dir return_list)
-    FILE(GLOB_RECURSE new_list FOLLOW_SYMLINKS ${dir} )
-    SET(dir_list "")
-    FOREACH(file_path ${new_list})
-        GET_FILENAME_COMPONENT(dir_path ${file_path} PATH)
-        SET(dir_list ${dir_list} ${dir_path})
-    ENDFOREACH()
-    LIST(REMOVE_DUPLICATES dir_list)
-    SET(${return_list} ${dir_list})
-ENDMACRO()
 
 
 cmake_minimum_required(VERSION 3.12)
@@ -18,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
+include(tools)
 # all includes are with the source files
 RECURSIVE_DIRECTORIES("${PROJECT_SOURCE_DIR}/src/*" project_includes)
 include_directories(PUBLIC ${project_includes})
@@ -61,25 +51,16 @@ if(${CMAKE_VERSION} VERSION_GREATER "3.14.0")
 else()
   find_package(NumPy REQUIRED)
 endif()
+
 find_package(pybind11)
 find_package(PyQt6)
-message(${_PyQt6_PATH})
 
 pybind11_add_module("${PROJECT_NAME}_py" ${pybind_source_files})
-RECURSIVE_DIRECTORIES(/opt/homebrew/include/Qt*.h pyqt6_includes)
-FILE(GLOB_RECURSE pyqt6_libs FOLLOW_SYMLINKS "${_PyQt6_PATH}/Qt6/lib/*")
-list(FILTER pyqt6_libs INCLUDE REGEX "${_PyQt6_PATH}/Qt6/lib/.*A/.*" )
 
-list(LENGTH pyqt6_includes header_dir_list_count)
-message(STATUS "[INFO] Found ${header_dir_list_count} header directories.")
-list(LENGTH pyqt6_libs header_dir_list_count)
-message(STATUS "[INFO] Found ${header_dir_list_count} lib directories.")
-message("${pyqt6_libs}")
+target_link_libraries("${PROJECT_NAME}" PUBLIC ${PyQt6_LIBRARIES})
 
-target_link_libraries("${PROJECT_NAME}" PUBLIC ${pyqt6_libs})
-
-target_link_libraries("${PROJECT_NAME}_lib" PUBLIC ${pyqt6_libs})
-target_link_libraries("${PROJECT_NAME}_py" PUBLIC ${pyqt6_libs})
+target_link_libraries("${PROJECT_NAME}_lib" PUBLIC ${PyQt6_LIBRARIES})
+target_link_libraries("${PROJECT_NAME}_py" PUBLIC ${PyQt6_LIBRARIES})
 
 target_include_directories("${PROJECT_NAME}" PUBLIC ${pyqt6_includes} "/opt/homebrew/include")
 target_include_directories("${PROJECT_NAME}_lib" PUBLIC ${pyqt6_includes} "/opt/homebrew/include")

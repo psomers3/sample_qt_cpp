@@ -60,6 +60,13 @@ find_package_handle_standard_args( PyQt6
 
 if( PyQt6_FOUND )
   set( PyQt6_INCLUDE_DIRS ${PyQt6_INCLUDE_DIR} )
+  RECURSIVE_DIRECTORIES(/opt/homebrew/include/Qt*.h pyqt6_includes)
+  FILE(GLOB_RECURSE pyqt6_libs FOLLOW_SYMLINKS "${_PyQt6_PATH}/Qt6/lib/*")
+  list(FILTER pyqt6_libs INCLUDE REGEX "${_PyQt6_PATH}/Qt6/lib/.*A/.*" )
+  set( PyQt6_LIBRARIES ${pyqt6_libs} )
+  message( "Found PyQt6: ${_PyQt6_PATH}")
+else()
+  message( "Could not locate PyQt6. This can be installed with \"pip install PyQt6\"")
 endif()
 
 mark_as_advanced( PyQt6_INCLUDE_DIR )
